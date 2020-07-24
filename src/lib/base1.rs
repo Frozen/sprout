@@ -1,4 +1,4 @@
-// use super::super::tokenize::Token;
+use anyhow::Result;
 use crate::lib::tokenize::Token;
 use std::fmt::Debug;
 use crate::lib::output;
@@ -6,7 +6,7 @@ use crate::lib::scope::Scope;
 
 
 #[derive(Debug, Clone)]
-struct Base1Expr {
+pub struct Base1Expr {
     output: output::H,
     original: Vec<Token>,
     executable: Executable,
@@ -19,25 +19,25 @@ impl PartialEq for Base1Expr {
 }
 
 impl Base1Expr {
-    pub fn build(tokens: Vec<Token>) -> Result<Base1Expr, String> {
+    pub fn build(tokens: &[Token]) -> Result<Base1Expr> {
         let pos = tokens.iter().position(|&x| x == Token::Arrow);
         return match pos {
             Some(p) => {
-                let (left, right) = tokens.split_at(p);
+                let (left, _right) = tokens.split_at(p);
                 let ex = Executable::build(left)?;
                 let out = match tokens.get(p + 3) {
                     Some(Token::M) => output::H::M,
                     Some(Token::P) => output::H::P,
                     Some(Token::T) => output::H::T,
-                    _ => return Err("no output found".to_string()),
+                    _ => return Err(anyhow!("no output found")),
                 };
                 Ok(Base1Expr {
                     output: out,
-                    original: tokens,
+                    original: tokens.to_vec(),
                     executable: ex,
                 })
             },
-            None => Err("invalid expression".to_string())
+            None => Err(anyhow!("invalid expression"))
         }
     }
 
@@ -49,7 +49,7 @@ impl Base1Expr {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 struct Executable {
     inner: Vec<Token>,
 }
@@ -59,9 +59,7 @@ impl Executable {
         let mut stack = vec![];
         for i in &self.inner {
             match i {
-                Token::A => {
-                    stack.push(s.a)
-                },
+                Token::A => stack.push(s.a),
                 Token::B => stack.push(s.b),
                 Token::C => stack.push(s.c),
                 Token::Not => {
@@ -79,7 +77,7 @@ impl Executable {
         return stack.pop().unwrap()
     }
 
-    fn build(input: &[Token]) -> Result<Executable, String> {
+    fn build(input: &[Token]) -> Result<Executable> {
         let mut stack = vec![];
         let mut out = vec![];
 
@@ -110,7 +108,7 @@ impl Executable {
                 Token::And => {
                     stack.push(Token::And);
                 },
-                t => return Err(format!("unexpected token {:?}", t))
+                t => return Err(anyhow!("unexpected token {:?}", t))
             }
         }
         for i in stack {
@@ -143,10 +141,10 @@ mod test {
     fn test_base1_expr() {
         use crate::lib::tokenize::Token::*;
         let v = vec![A, And, B, And, Not, C, Arrow, H, Eq, M];
-        let rs1 = Base1Expr::build(v).unwrap();
+        let rs1 = Base1Expr::build(&v).unwrap();
 
         let v = vec![Not, A, And, B, And, C, Arrow, H, Eq, T];
-        let rs2 = Base1Expr::build(v).unwrap();
+        let rs2 = Base1Expr::build(&v).unwrap();
 
         assert_ne!(rs1, rs2);
         assert_eq!(rs1, rs1);
