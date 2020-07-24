@@ -126,6 +126,7 @@ mod test {
     use crate::lib::base1::{Base1Expr, Executable};
     use crate::lib::output;
     use crate::lib::scope::Scope;
+    use crate::lib::tokenize::Token::Const;
 
 
     #[test]
@@ -154,5 +155,10 @@ mod test {
 
         assert_eq!(Some(output::H::T), rs2.run(Scope::abc(false, true, true)));
         assert_eq!(None, rs2.run(Scope::abc(true, true, true)));
+    }
+
+    #[test]
+    fn test_invalid() {
+        assert!(Base1Expr::build(&vec![Const(1.0)]).is_err());
     }
 }

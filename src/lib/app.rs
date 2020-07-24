@@ -15,6 +15,17 @@ impl App {
         }
     }
 
+    pub fn default() -> App {
+        let app = App::new();
+        let app = app.add("A && B && !C => H = M").unwrap();
+        let app = app.add("A && B && C => H = P").unwrap();
+        let app = app.add("!A && B && C => H = T").unwrap();
+        let app = app.add("H = M => K = D + (D * E / 10)").unwrap();
+        let app = app.add("H = P => K = D + (D * (E - F) / 25.5)").unwrap();
+        let app = app.add("H = T => K = D - (D * F / 30)").unwrap();
+        return app
+    }
+
     pub fn add(&self, expr: &str) -> Result<App> {
         let ok = Expr::from_str(expr)?;
         Ok(self.add_expr(ok))
@@ -64,9 +75,7 @@ impl App {
 
 #[cfg(test)]
 mod test {
-    use crate::lib::expr::Expr;
     use crate::lib::scope::Scope;
-    use crate::lib::output;
     use super::App;
 
     #[test]
@@ -82,8 +91,15 @@ mod test {
         let rs = app.run(Scope::new(false, true, true, 5.0, 0, 30)).unwrap();
         assert_eq!(0.0, rs);
 
-
         let rs = app.run(Scope::new(true, true, true, 1.0, 52, 1)).unwrap();
         assert_eq!(3.0, rs);
+
+        assert!(app.add("1").is_err());
+
+        assert_eq!(3.0,
+                   app.add("A && B && !C => H = P").
+                       unwrap().
+                       run(Scope::new(true, true, false, 1.0, 52, 1)).
+                       unwrap());
     }
 }
